@@ -1,0 +1,226 @@
+setwd("C:\\Users\\Bishwarup\\Dropbox\\IVY DATA SCIENCE\\Industry Project\\Live Project\\Linear Regression")
+getwd()
+data<-read.csv("Fn-UseC_-Marketing-Customer-Value-Analysis.csv", na.strings = "")
+data.bkp<-data
+head(data)
+tail(data)
+str(data)
+data<-data[,-1]
+colnames(data)
+nrow(data)
+sapply(data, function(x) sum(is.na(x)))
+library(summarytools)
+dfSummary(data)
+data[!(complete.cases(data)),]
+data$Effective.To.Date<-gsub(pattern = "-", replacement = "/", x = data$Effective.To.Date)
+data$Effective.To.Date<-as.POSIXct(data$Effective.To.Date, format = "%m/%d/%y")
+data$Number.of.Open.Complaints<-as.factor(data$Number.of.Open.Complaints)
+data$Number.of.Policies<-as.factor(data$Number.of.Policies)
+########################## NO MISSING DATA ####################################################################
+summary(data)
+library(dplyr)
+data%>%select(Customer.Lifetime.Value)
+boxplot(data%>%select(Customer.Lifetime.Value)%>%filter(Customer.Lifetime.Value<14473))
+summary(data%>%select(Customer.Lifetime.Value)%>%filter(Customer.Lifetime.Value<14473))
+quantile(data$Customer.Lifetime.Value, seq(0,1,0.05))
+data<-data%>%filter(Customer.Lifetime.Value<14473)
+
+boxplot(data%>%select(Income))
+
+boxplot(data%>%select(Monthly.Premium.Auto)%>%filter(Monthly.Premium.Auto<165))
+summary(data%>%select(Monthly.Premium.Auto)%>%filter(Monthly.Premium.Auto<165))
+data<-data%>%filter(Monthly.Premium.Auto<165)
+
+boxplot(data%>%select(Months.Since.Last.Claim))
+
+boxplot(data%>%select(Months.Since.Policy.Inception))
+
+boxplot(data%>%select(Total.Claim.Amount)%>%filter(Total.Claim.Amount<921))
+summary(data%>%select(Total.Claim.Amount)%>%filter(Total.Claim.Amount<921))
+data<-data%>%filter(Total.Claim.Amount<921)
+library(corrplot)
+corrplot(cor(data[,c(2,9,12,13,14,21)]))
+####################################### DATA IS CLEAN ##########################################
+write.csv(x = data, file = "Cleaned.csv")
+library(caTools)
+set.seed(123)
+split<-sample.split(Y = data$Customer.Lifetime.Value, SplitRatio = 0.75)
+train<-subset(x = data, subset = split==T)
+test<-subset(x = data, subset = split==F)
+####################################### MODEL ##################################################
+############### ALL FACTORS IN########################
+regressor<- lm(formula = Customer.Lifetime.Value ~ . , data = train )
+summary(regressor)
+############### Removing NA p-values and policy ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~ State+Response+
+                 Coverage+Education+Effective.To.Date+EmploymentStatus+
+                 Gender+Income+Location.Code+Marital.Status+Monthly.Premium.Auto+
+                 Months.Since.Last.Claim+Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+Policy.Type+Renew.Offer.Type+
+                 Sales.Channel+Total.Claim.Amount+Vehicle.Class, data = train )
+summary(regressor)
+############### Removing STATE ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~ Response+
+                 Coverage+Education+Effective.To.Date+EmploymentStatus+
+                 Gender+Income+Location.Code+Marital.Status+Monthly.Premium.Auto+
+                 Months.Since.Last.Claim+Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+Policy.Type+Renew.Offer.Type+
+                 Sales.Channel+Total.Claim.Amount+Vehicle.Class, data = train )
+summary(regressor)
+############### Removing EmploymentStatusMedical Leave and Retired  ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~ Response+
+                 Coverage+Education+Effective.To.Date+I(EmploymentStatus=="Employed")+I(EmploymentStatus=="Unemployed")
+               +Gender+Income+Location.Code+Marital.Status+Monthly.Premium.Auto+
+                 Months.Since.Last.Claim+Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+Policy.Type+Renew.Offer.Type+
+                 Sales.Channel+Total.Claim.Amount+Vehicle.Class, data = train )
+summary(regressor)
+############### Removing Policy Type  ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~ Response+
+                 Coverage+Education+Effective.To.Date+I(EmploymentStatus=="Employed")+I(EmploymentStatus=="Unemployed")
+               +Gender+Income+Location.Code+Marital.Status+Monthly.Premium.Auto+
+                 Months.Since.Last.Claim+Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+Renew.Offer.Type+
+                 Sales.Channel+Total.Claim.Amount+Vehicle.Class, data = train )
+summary(regressor)
+############### Removing Sales Channel  ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~ Response+
+                 Coverage+Education+Effective.To.Date+I(EmploymentStatus=="Employed")+I(EmploymentStatus=="Unemployed")
+               +Gender+Income+Location.Code+Marital.Status+Monthly.Premium.Auto+
+                 Months.Since.Last.Claim+Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+Renew.Offer.Type+
+                Total.Claim.Amount+Vehicle.Class, data = train )
+summary(regressor)
+############### Removing Coverage premium  ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~ Response+
+                 I(Coverage=="Extended")+Education+Effective.To.Date+I(EmploymentStatus=="Employed")+I(EmploymentStatus=="Unemployed")
+               +Gender+Income+Location.Code+Marital.Status+Monthly.Premium.Auto+
+                 Months.Since.Last.Claim+Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+Renew.Offer.Type+
+                 Total.Claim.Amount+Vehicle.Class, data = train )
+summary(regressor)
+############### Removing Response  ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~
+                 I(Coverage=="Extended")+Education+Effective.To.Date+I(EmploymentStatus=="Employed")+I(EmploymentStatus=="Unemployed")
+               +Gender+Income+Location.Code+Marital.Status+Monthly.Premium.Auto+
+                 Months.Since.Last.Claim+Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+Renew.Offer.Type+
+                 Total.Claim.Amount+Vehicle.Class, data = train )
+summary(regressor)
+############### Removing Vehicle.Class  ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~
+                 I(Coverage=="Extended")+Education+Effective.To.Date+I(EmploymentStatus=="Employed")+I(EmploymentStatus=="Unemployed")
+               +Gender+Income+Location.Code+Marital.Status+Monthly.Premium.Auto+
+                 Months.Since.Last.Claim+Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+Renew.Offer.Type+
+                 Total.Claim.Amount, data = train )
+summary(regressor)
+############### Removing Renew Offer  ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~
+                 I(Coverage=="Extended")+Education+Effective.To.Date+I(EmploymentStatus=="Employed")+I(EmploymentStatus=="Unemployed")
+               +Gender+Income+Location.Code+Marital.Status+Monthly.Premium.Auto+
+                 Months.Since.Last.Claim+Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+
+                 Total.Claim.Amount, data = train )
+summary(regressor)
+############### Removing Location Code  ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~
+                 I(Coverage=="Extended")+Education+Effective.To.Date+I(EmploymentStatus=="Employed")+I(EmploymentStatus=="Unemployed")
+               +Gender+Income+Marital.Status+Monthly.Premium.Auto+
+                 Months.Since.Last.Claim+Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+
+                 Total.Claim.Amount, data = train )
+summary(regressor)
+
+############### Removing Effective.To.Date  ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~
+                 I(Coverage=="Extended")+Education+I(EmploymentStatus=="Employed")+I(EmploymentStatus=="Unemployed")
+               +Gender+Income+Marital.Status+Monthly.Premium.Auto+
+                 Months.Since.Last.Claim+Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+
+                 Total.Claim.Amount, data = train )
+summary(regressor)
+############### Removing Marital.StatusSingle  ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~
+                 I(Coverage=="Extended")+Education+I(EmploymentStatus=="Employed")+I(EmploymentStatus=="Unemployed")
+               +Gender+Income+I(Marital.Status=="Married")+Monthly.Premium.Auto+
+                 Months.Since.Last.Claim+Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+
+                 Total.Claim.Amount, data = train )
+summary(regressor)
+############### Removing Months.Since.Last.Claim  ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~
+                 I(Coverage=="Extended")+Education+I(EmploymentStatus=="Employed")+I(EmploymentStatus=="Unemployed")
+               +Gender+Income+I(Marital.Status=="Married")+Monthly.Premium.Auto+
+               Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+
+                 Total.Claim.Amount, data = train )
+summary(regressor)
+################ TESTING FOR MULTICOLLINEARITY BEFORE MODEL FINALIZATION #############################
+vif(regressor)
+############### Removing EmploymentStatus=="Unemployed"  ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~
+                 I(Coverage=="Extended")+Education+I(EmploymentStatus=="Employed")
+               +Gender+Income+I(Marital.Status=="Married")+Monthly.Premium.Auto+
+                 Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+
+                 Total.Claim.Amount, data = train )
+summary(regressor)
+vif(regressor)
+############### Removing Income  ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~
+                 I(Coverage=="Extended")+Education+I(EmploymentStatus=="Employed")
+               +Gender+I(Marital.Status=="Married")+Monthly.Premium.Auto+
+                 Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+
+                 Total.Claim.Amount, data = train )
+summary(regressor)
+vif(regressor)
+
+
+############### FINAL MODEL  ########################
+regressor<- lm(formula = Customer.Lifetime.Value ~
+                 I(Coverage=="Extended")+Education+I(EmploymentStatus=="Employed")
+               +Gender+I(Marital.Status=="Married")+Monthly.Premium.Auto+
+                 Months.Since.Policy.Inception+Number.of.Open.Complaints+
+                 Number.of.Policies+
+                 Total.Claim.Amount, data = train )
+summary(regressor)
+############### FINAL MODEL  ########################
+################################## TESTING FOR OLS VIOLATION ########################
+library(nortest)
+ad.test(regressor$residuals) #FAILED --  residual not normally distributed
+shapiro.test(regressor$residuals[1:5000]) #FAILED --  residual not normally distributed
+library(lmtest)
+dwtest(regressor) #PASSED -- no autocorrelation 
+library(car)
+library(carData)
+vif(regressor) #PASSED --no multicollinearity
+bptest(regressor)#FAILED--- error is not homogeneous
+plot(regressor)
+########################## PREDITING############################
+pred<-predict(object = regressor, newdata = test)
+MAPE<-mean(abs(test$Customer.Lifetime.Value-pred)/test$Customer.Lifetime.Value)
+MAPE #LOW mape od 0.10 is acceptable
+Accuracy<-(1-MAPE)*100
+Accuracy #high accuracy of ~ 90%
+########################## Deploying Deision Tree Regression##############
+library(rpart)
+library(rpart.plot)
+reg<-rpart(formula = Customer.Lifetime.Value~ ., data = train, method = "anova" )
+rpart.plot(reg)
+####################### PREDICTING #####################################
+pred.tree<-predict(object = reg, newdata = test)
+MAPE.tree<-mean(abs(test$Customer.Lifetime.Value-pred)/test$Customer.Lifetime.Value)
+MAPE.tree #LOW mape less than .2 acceptable
+Accuracy.tree<-(1-MAPE.tree)*100
+Accuracy.tree #high accuracy ~90%
+printcp(reg)
+bestcp<-reg$cptable[which.min(reg$cptable[,"xerror"]),1]
+pruned<-prune(tree = reg, cp = bestcp)
+pred.tree<-predict(object = pruned, newdata = test)
+MAPE.tree<-mean(abs(test$Customer.Lifetime.Value-pred.tree)/test$Customer.Lifetime.Value)
+MAPE.tree #LOW mape less than .2 acceptable
+Accuracy.tree<-(1-MAPE.tree)*100
+Accuracy.tree#high accuracy ~90%
+
